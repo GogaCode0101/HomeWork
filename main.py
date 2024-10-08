@@ -12,6 +12,8 @@ class DocumentManagementSystem:
         self.documents = []  # Список документов
         self.policies = []  # Список положений
         self.job_descriptions = []  # Список должностных инструкций
+        self.incoming_documents = []  # Список входящих документов
+        self.outgoing_documents = []  # Список исходящих документов
 
         # Переменные для профиля пользователя
         self.username = None  # Имя пользователя
@@ -21,10 +23,7 @@ class DocumentManagementSystem:
         self.load_user_data()
 
         # Вызов функции для выбора между регистрацией и авторизацией
-        if self.username and self.password:
-            self.authenticate()
-        else:
-            self.show_initial_dialog()
+        self.show_initial_dialog()
 
     def load_user_data(self):
         """Загрузка данных пользователя из файла."""
@@ -79,6 +78,29 @@ class DocumentManagementSystem:
         self.menu_frame = tk.Frame(self.root)
         self.menu_frame.pack(side=tk.LEFT, fill=tk.Y)
 
+        # Боковая панель навигации
+        self.navigation_frame = tk.Frame(self.root)
+        self.navigation_frame.pack(side=tk.LEFT, fill=tk.Y)
+
+        # Кнопки навигации
+        self.incoming_button = tk.Button(self.navigation_frame, text="Входящие документы",
+                                         command=self.show_incoming_documents)
+        self.incoming_button.pack(pady=5)
+
+        self.outgoing_button = tk.Button(self.navigation_frame, text="Исходящие документы",
+                                         command=self.show_outgoing_documents)
+        self.outgoing_button.pack(pady=5)
+
+        self.archive_button = tk.Button(self.navigation_frame, text="Архив", command=self.show_archive)
+        self.archive_button.pack(pady=5)
+
+        self.tasks_button = tk.Button(self.navigation_frame, text="Задачи", command=self.show_tasks)
+        self.tasks_button.pack(pady=5)
+
+        self.admin_button = tk.Button(self.navigation_frame, text="Настройки и администрирование",
+                                      command=self.show_admin_panel)
+        self.admin_button.pack(pady=5)
+
         self.create_button = tk.Button(self.menu_frame, text="Создать", command=self.create_item)
         self.create_button.pack(pady=10)
 
@@ -124,6 +146,41 @@ class DocumentManagementSystem:
         self.user_menu_button = tk.Button(self.dashboard_frame, text="Меню пользователя", command=self.user_menu)
         self.user_menu_button.pack(side=tk.LEFT, padx=5, pady=5)
 
+    # Функции для отображения различных разделов
+    def show_incoming_documents(self):
+        if not self.incoming_documents:
+            messagebox.showinfo("Входящие документы", "Нет входящих документов.")
+        else:
+            documents = "\n".join([doc["title"] for doc in self.incoming_documents])
+            messagebox.showinfo("Входящие документы", f"Список входящих документов:\n{documents}")
+
+    def show_outgoing_documents(self):
+        if not self.outgoing_documents:
+            messagebox.showinfo("Исходящие документы", "Нет исходящих документов.")
+        else:
+            documents = "\n".join([doc["title"] for doc in self.outgoing_documents])
+            messagebox.showinfo("Исходящие документы", f"Список исходящих документов:\n{documents}")
+
+    def show_archive(self):
+        archived_documents = self.documents  # Для примера используем все документы как архивированные
+        if not archived_documents:
+            messagebox.showinfo("Архив", "Нет архивированных документов.")
+        else:
+            documents = "\n".join([doc["title"] for doc in archived_documents])
+            messagebox.showinfo("Архив", f"Список архивированных документов:\n{documents}")
+
+    def show_tasks(self):
+        tasks = ["Задача 1: Подготовить отчет", "Задача 2: Провести встречу", "Задача 3: Обновить документацию"]
+        if not tasks:
+            messagebox.showinfo("Задачи", "Нет текущих задач.")
+        else:
+            task_list = "\n".join(tasks)
+            messagebox.showinfo("Задачи", f"Список задач:\n{task_list}")
+
+    def show_admin_panel(self):
+        messagebox.showinfo("Настройки и администрирование",
+                            "Здесь будут настройки и администрирование для управляющих пользователей.")
+
     # Функция для показа уведомлений
     def show_notifications(self):
         notifications = "Новые документы: {}\nТребующие действий: {}\nНапоминания: {}".format(len(self.documents), 0, 0)
@@ -142,71 +199,54 @@ class DocumentManagementSystem:
 
     # Настройка профиля
     def setup_profile(self):
-        new_username = simpledialog.askstring("Настройка профиля", "Введите новое имя пользователя:",
-                                              initialvalue=self.username)
-        if new_username is not None:
-            self.username = new_username
-
+        new_username = simpledialog.askstring("Настройка профиля", "Введите новое имя пользователя:")
         new_password = simpledialog.askstring("Настройка профиля", "Введите новый пароль:", show='*')
-        if new_password is not None:
+
+        if new_username and new_password:
+            self.username = new_username
             self.password = new_password
-
-        self.save_user_data()  # Сохранение обновленных данных
-        messagebox.showinfo("Настройка профиля",
-                            f"Профиль обновлён.\nИмя пользователя: {self.username}\nПароль: {self.password}")
-
-    # Функция для быстрого поиска по документам
-    def quick_search(self):
-        search_query = self.search_entry.get()
-        if search_query:
-            found = False
-            for doc in self.documents + self.policies + self.job_descriptions:
-                if search_query.lower() in doc["title"].lower() or search_query.lower() in doc["content"].lower():
-                    found = True
-                    messagebox.showinfo("Найдено", f"Найдено: {doc['title']}\nСодержимое:\n{doc['content']}")
-                    break
-            if not found:
-                messagebox.showwarning("Не найдено", "Документ не найден.")
+            self.save_user_data()  # Сохранение обновленных данных
+            messagebox.showinfo("Успех", "Профиль успешно обновлён!")
         else:
-            messagebox.showwarning("Ошибка", "Введите запрос для поиска.")
+            messagebox.showwarning("Ошибка", "Имя пользователя и пароль не могут быть пустыми.")
 
-    # Объединённая функция для создания
-    def create_item(self):
-        create_type = simpledialog.askstring("Создать",
-                                             "Что вы хотите создать? (документ/положение/инструкция)").lower()
-
-        if not create_type:
-            messagebox.showwarning("Ошибка", "Вы должны ввести тип создания.")
+    # Функция для быстрого поиска
+    def quick_search(self):
+        query = self.search_entry.get()
+        if not query:
+            messagebox.showwarning("Ошибка", "Введите текст для поиска.")
             return
 
-        if create_type == "документ":
-            doc_title = simpledialog.askstring("Название документа", "Введите название документа:")
-            doc_content = simpledialog.askstring("Содержимое документа", "Введите содержимое документа:")
-            if doc_title and doc_content:
-                self.documents.append({"title": doc_title, "content": doc_content})
-                messagebox.showinfo("Успех", f"Документ '{doc_title}' создан!")
-            else:
-                messagebox.showwarning("Ошибка", "Название и содержимое документа не могут быть пустыми.")
+        found = False
+        for doc in self.documents:
+            if query.lower() in doc["title"].lower():
+                found = True
+                messagebox.showinfo("Найдено", f"Документ найден: {doc['title']}\nСодержимое:\n{doc['content']}")
+                break
+        if not found:
+            messagebox.showwarning("Не найдено", "Документ не найден.")
 
-        elif create_type == "положение":
-            policy_title = simpledialog.askstring("Название положения", "Введите название положения:")
-            policy_content = simpledialog.askstring("Содержимое положения", "Введите содержимое положения:")
-            if policy_title and policy_content:
-                self.policies.append({"title": policy_title, "content": policy_content})
-                messagebox.showinfo("Успех", f"Положение '{policy_title}' создано!")
-            else:
-                messagebox.showwarning("Ошибка", "Название и содержимое положения не могут быть пустыми.")
+    # Функция для создания документа, положения или инструкции
+    def create_item(self):
+        item_type = simpledialog.askstring("Создание",
+                                           "Какой тип создаваемого элемента? (документ/положение/инструкция)").lower()
 
-        elif create_type == "инструкция":
-            job_title = simpledialog.askstring("Название должностной инструкции",
-                                               "Введите название должностной инструкции:")
-            job_content = simpledialog.askstring("Содержимое должностной инструкции",
-                                                 "Введите содержимое должностной инструкции:")
-            if job_title and job_content:
-                self.job_descriptions.append({"title": job_title, "content": job_content})
-                messagebox.showinfo("Успех", f"Должностная инструкция '{job_title}' создана!")
+        if item_type in ["документ", "положение", "инструкция"]:
+            item_title = simpledialog.askstring("Создание", "Введите название:")
+            item_content = simpledialog.askstring("Создание", "Введите содержимое:")
+
+            if item_title and item_content:
+                if item_type == "документ":
+                    self.documents.append({"title": item_title, "content": item_content})
+                    self.incoming_documents.append(
+                        {"title": item_title, "content": item_content})  # Добавление в входящие
+                elif item_type == "положение":
+                    self.policies.append({"title": item_title, "content": item_content})
+                elif item_type == "инструкция":
+                    self.job_descriptions.append({"title": item_title, "content": item_content})
+                messagebox.showinfo("Успех", f"{item_type.capitalize()} '{item_title}' успешно создан!")
             else:
-                messagebox.showwarning("Ошибка", "Название и содержимое должностной инструкции не могут быть пустыми.")
+                messagebox.showwarning("Ошибка", "Название и содержимое не могут быть пустыми.")
         else:
             messagebox.showwarning("Ошибка", "Тип создания должен быть 'документ', 'положение' или 'инструкция'.")
 
