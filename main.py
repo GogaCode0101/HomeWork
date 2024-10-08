@@ -30,6 +30,68 @@ class DocumentManagementSystem:
         # Привязка двойного щелчка к функции просмотра содержимого
         self.document_listbox.bind('<Double-1>', self.view_document_content)
 
+        # Панель управления (Dashboard)
+        self.dashboard_frame = tk.Frame(self.root)
+        self.dashboard_frame.pack(side=tk.TOP, fill=tk.X)
+
+        # Кнопка быстрого создания нового документа
+        self.quick_create_button = tk.Button(self.dashboard_frame, text="Быстрое создание документа", command=self.create_item)
+        self.quick_create_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # Поле для поиска
+        self.search_entry = tk.Entry(self.dashboard_frame, width=30)
+        self.search_entry.pack(side=tk.LEFT, padx=5, pady=5)
+        self.search_entry.bind('<Return>', lambda event: self.quick_search())
+
+        self.search_label = tk.Label(self.dashboard_frame, text="Поиск:")
+        self.search_label.pack(side=tk.LEFT, padx=5)
+
+        # Кнопка для поиска по документам
+        self.quick_search_button = tk.Button(self.dashboard_frame, text="Поиск по документам", command=self.quick_search)
+        self.quick_search_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # Уведомления
+        self.notifications_button = tk.Button(self.dashboard_frame, text="Уведомления", command=self.show_notifications)
+        self.notifications_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+        # Меню пользователя
+        self.user_menu_button = tk.Button(self.dashboard_frame, text="Меню пользователя", command=self.user_menu)
+        self.user_menu_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+    # Функция для показа уведомлений
+    def show_notifications(self):
+        notifications = "Новые документы: {}\nТребующие действий: {}\nНапоминания: {}".format(len(self.documents), 0, 0)
+        messagebox.showinfo("Уведомления", notifications)
+
+    # Функция для пользовательского меню
+    def user_menu(self):
+        user_choice = simpledialog.askstring("Меню пользователя", "Введите '1' для настройки профиля или '2' для выхода:")
+        if user_choice == '1':
+            self.setup_profile()
+        elif user_choice == '2':
+            self.root.quit()
+        else:
+            messagebox.showwarning("Ошибка", "Неверный выбор.")
+
+    # Настройка профиля (заглушка для будущей реализации)
+    def setup_profile(self):
+        messagebox.showinfo("Настройка профиля", "Настройки профиля еще не реализованы.")
+
+    # Функция для быстрого поиска по документам
+    def quick_search(self):
+        search_query = self.search_entry.get()
+        if search_query:
+            found = False
+            for doc in self.documents + self.policies + self.job_descriptions:
+                if search_query.lower() in doc["title"].lower() or search_query.lower() in doc["content"].lower():
+                    found = True
+                    messagebox.showinfo("Найдено", f"Найдено: {doc['title']}\nСодержимое:\n{doc['content']}")
+                    break
+            if not found:
+                messagebox.showwarning("Не найдено", "Документ не найден.")
+        else:
+            messagebox.showwarning("Ошибка", "Введите запрос для поиска.")
+
     # Объединённая функция для создания
     def create_item(self):
         create_type = simpledialog.askstring("Создать",
