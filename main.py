@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox, simpledialog
+import json
+import os
 
 
 class DocumentManagementSystem:
@@ -11,6 +13,68 @@ class DocumentManagementSystem:
         self.policies = []  # Список положений
         self.job_descriptions = []  # Список должностных инструкций
 
+        # Переменные для профиля пользователя
+        self.username = None  # Имя пользователя
+        self.password = None  # Пароль
+
+        # Загрузка данных пользователя
+        self.load_user_data()
+
+        # Вызов функции для выбора между регистрацией и авторизацией
+        if self.username and self.password:
+            self.authenticate()
+        else:
+            self.show_initial_dialog()
+
+    def load_user_data(self):
+        """Загрузка данных пользователя из файла."""
+        if os.path.exists('user_data.json'):
+            with open('user_data.json', 'r') as file:
+                data = json.load(file)
+                self.username = data.get('username')
+                self.password = data.get('password')
+
+    def save_user_data(self):
+        """Сохранение данных пользователя в файл."""
+        with open('user_data.json', 'w') as file:
+            json.dump({'username': self.username, 'password': self.password}, file)
+
+    def show_initial_dialog(self):
+        choice = simpledialog.askstring("Регистрация / Авторизация",
+                                        "Введите '1' для регистрации или '2' для авторизации:")
+        if choice == '1':
+            self.register()
+        elif choice == '2':
+            self.authenticate()
+        else:
+            messagebox.showwarning("Ошибка", "Неверный выбор. Пожалуйста, попробуйте снова.")
+            self.show_initial_dialog()
+
+    def register(self):
+        self.username = simpledialog.askstring("Регистрация", "Введите имя пользователя:")
+        self.password = simpledialog.askstring("Регистрация", "Введите пароль:", show='*')
+
+        if self.username and self.password:
+            self.save_user_data()  # Сохранение данных пользователя
+            messagebox.showinfo("Успех", "Вы успешно зарегистрировались!")
+            self.setup_ui()  # Запуск основного интерфейса
+        else:
+            messagebox.showwarning("Ошибка", "Имя пользователя и пароль не могут быть пустыми.")
+            self.show_initial_dialog()  # Повторный выбор
+
+    def authenticate(self):
+        while True:
+            username = simpledialog.askstring("Авторизация", "Введите имя пользователя:")
+            password = simpledialog.askstring("Авторизация", "Введите пароль:", show='*')
+
+            if username == self.username and password == self.password:
+                messagebox.showinfo("Успех", "Вы успешно авторизовались!")
+                self.setup_ui()  # Запуск основного интерфейса
+                break
+            else:
+                messagebox.showerror("Ошибка", "Неверное имя пользователя или пароль. Попробуйте снова.")
+
+    def setup_ui(self):
         # Главное меню
         self.menu_frame = tk.Frame(self.root)
         self.menu_frame.pack(side=tk.LEFT, fill=tk.Y)
@@ -35,7 +99,8 @@ class DocumentManagementSystem:
         self.dashboard_frame.pack(side=tk.TOP, fill=tk.X)
 
         # Кнопка быстрого создания нового документа
-        self.quick_create_button = tk.Button(self.dashboard_frame, text="Быстрое создание документа", command=self.create_item)
+        self.quick_create_button = tk.Button(self.dashboard_frame, text="Быстрое создание документа",
+                                             command=self.create_item)
         self.quick_create_button.pack(side=tk.LEFT, padx=5, pady=5)
 
         # Поле для поиска
@@ -47,7 +112,8 @@ class DocumentManagementSystem:
         self.search_label.pack(side=tk.LEFT, padx=5)
 
         # Кнопка для поиска по документам
-        self.quick_search_button = tk.Button(self.dashboard_frame, text="Поиск по документам", command=self.quick_search)
+        self.quick_search_button = tk.Button(self.dashboard_frame, text="Поиск по документам",
+                                             command=self.quick_search)
         self.quick_search_button.pack(side=tk.LEFT, padx=5, pady=5)
 
         # Уведомления
@@ -65,7 +131,8 @@ class DocumentManagementSystem:
 
     # Функция для пользовательского меню
     def user_menu(self):
-        user_choice = simpledialog.askstring("Меню пользователя", "Введите '1' для настройки профиля или '2' для выхода:")
+        user_choice = simpledialog.askstring("Меню пользователя",
+                                             "Введите '1' для настройки профиля или '2' для выхода:")
         if user_choice == '1':
             self.setup_profile()
         elif user_choice == '2':
@@ -73,9 +140,20 @@ class DocumentManagementSystem:
         else:
             messagebox.showwarning("Ошибка", "Неверный выбор.")
 
-    # Настройка профиля (заглушка для будущей реализации)
+    # Настройка профиля
     def setup_profile(self):
-        messagebox.showinfo("Настройка профиля", "Настройки профиля еще не реализованы.")
+        new_username = simpledialog.askstring("Настройка профиля", "Введите новое имя пользователя:",
+                                              initialvalue=self.username)
+        if new_username is not None:
+            self.username = new_username
+
+        new_password = simpledialog.askstring("Настройка профиля", "Введите новый пароль:", show='*')
+        if new_password is not None:
+            self.password = new_password
+
+        self.save_user_data()  # Сохранение обновленных данных
+        messagebox.showinfo("Настройка профиля",
+                            f"Профиль обновлён.\nИмя пользователя: {self.username}\nПароль: {self.password}")
 
     # Функция для быстрого поиска по документам
     def quick_search(self):
