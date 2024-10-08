@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import messagebox, simpledialog, ttk
+from tkinter import messagebox, simpledialog
+
 
 class DocumentManagementSystem:
     def __init__(self, root):
@@ -23,6 +24,9 @@ class DocumentManagementSystem:
 
         self.document_listbox = tk.Listbox(self.root, width=50)
         self.document_listbox.pack(pady=10)
+
+        # Привязка двойного щелчка к функции просмотра документа
+        self.document_listbox.bind('<Double-1>', self.view_document_content)
 
     def create_document(self):
         doc_title = simpledialog.askstring("Название документа", "Введите название документа:")
@@ -50,6 +54,22 @@ class DocumentManagementSystem:
                 messagebox.showinfo("Результаты поиска", "Документы не найдены.")
         else:
             messagebox.showwarning("Ошибка", "Введите ключевое слово для поиска.")
+
+    def view_document_content(self, event):
+        selected_index = self.document_listbox.curselection()
+        if selected_index:
+            selected_doc = self.documents[selected_index[0]]
+            content_window = tk.Toplevel(self.root)
+            content_window.title(selected_doc["title"])
+
+            content_label = tk.Label(content_window, text=selected_doc["content"], padx=10, pady=10)
+            content_label.pack()
+
+            close_button = tk.Button(content_window, text="Закрыть", command=content_window.destroy)
+            close_button.pack(pady=5)
+        else:
+            messagebox.showwarning("Ошибка", "Выберите документ для просмотра.")
+
 
 if __name__ == "__main__":
     root = tk.Tk()
