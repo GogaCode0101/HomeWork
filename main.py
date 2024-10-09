@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog
 import json
 import os
+from datetime import datetime, timedelta
 
 
 class DocumentManagementSystem:
@@ -25,6 +26,16 @@ class DocumentManagementSystem:
         # Вызов функции для выбора между регистрацией и авторизацией
         self.show_initial_dialog()
 
+        # Создание панели метаданных
+        self.metadata_frame = tk.Frame(self.root)
+        self.metadata_frame.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.metadata_label = tk.Label(self.metadata_frame, text="Метаданные документа", font=("Arial", 12))
+        self.metadata_label.pack(pady=10)
+
+        self.metadata_text = tk.Text(self.metadata_frame, height=20, width=50)
+        self.metadata_text.pack(pady=10)
+
     def load_user_data(self):
         """Загрузка данных пользователя из файла."""
         if os.path.exists('user_data.json'):
@@ -40,7 +51,7 @@ class DocumentManagementSystem:
 
     def show_initial_dialog(self):
         choice = simpledialog.askstring("Регистрация / Авторизация",
-                                        "Введите '1' для регистрации или '2' для авторизации:")
+                                          "Введите '1' для регистрации или '2' для авторизации:")
         if choice == '1':
             self.register()
         elif choice == '2':
@@ -179,151 +190,95 @@ class DocumentManagementSystem:
 
     def show_admin_panel(self):
         messagebox.showinfo("Настройки и администрирование",
-                            "Здесь будут настройки и администрирование для управляющих пользователей.")
+                            "Здесь будут настройки и администрирование системы.")
 
-    # Функция для показа уведомлений
-    def show_notifications(self):
-        notifications = "Новые документы: {}\nТребующие действий: {}\nНапоминания: {}".format(len(self.documents), 0, 0)
-        messagebox.showinfo("Уведомления", notifications)
+    def create_item(self):
+        item_type = simpledialog.askstring("Тип документа", "Введите тип документа (например, 'положение', 'инструкция', 'документ'):")
+        title = simpledialog.askstring("Название", "Введите название документа:")
+        author = simpledialog.askstring("Автор", "Введите имя автора:")
+        recipient = simpledialog.askstring("Получатель (если исходящий)", "Введите получателя:")
+        status = simpledialog.askstring("Статус", "Введите статус документа (черновик, на согласовании, подписан и т.д.):")
+        deadline = simpledialog.askstring("Дедлайн", "Введите дедлайн для исполнения (формат: ГГГГ-ММ-ДД):")
 
-    # Функция для пользовательского меню
-    def user_menu(self):
-        user_choice = simpledialog.askstring("Меню пользователя",
-                                             "Введите '1' для настройки профиля или '2' для выхода:")
-        if user_choice == '1':
-            self.setup_profile()
-        elif user_choice == '2':
-            self.root.quit()
+        # Преобразуем дедлайн в объект datetime
+        try:
+            deadline_date = datetime.strptime(deadline, '%Y-%m-%d')
+        except ValueError:
+            messagebox.showwarning("Ошибка", "Неверный формат даты для дедлайна.")
+            return
+
+        document = {
+            "title": title,
+            "type": item_type,
+            "author": author,
+            "recipient": recipient,
+            "status": status,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "deadline": deadline_date.strftime("%Y-%m-%d"),
+        }
+
+        self.documents.append(document)
+        messagebox.showinfo("Успех", "Документ успешно создан!")
+
+    def view_item(self):
+        if not self.documents:
+            messagebox.showinfo("Просмотр", "Нет доступных документов для просмотра.")
+            return
+
+        document_titles = "\n".join([doc["title"] for doc in self.documents])
+        title = simpledialog.askstring("Выбор документа", f"Выберите документ:\n{document_titles}")
+
+        for doc in self.documents:
+            if doc["title"] == title:
+                self.display_document_metadata(doc)
+                break
         else:
-            messagebox.showwarning("Ошибка", "Неверный выбор.")
+            messagebox.showwarning("Ошибка", "Документ не найден.")
 
-    # Настройка профиля
-    def setup_profile(self):
-        new_username = simpledialog.askstring("Настройка профиля", "Введите новое имя пользователя:")
-        new_password = simpledialog.askstring("Настройка профиля", "Введите новый пароль:", show='*')
+    def display_document_metadata(self, document):
+        """Отображение метаданных документа."""
+        metadata = f"Тип документа: {document['type']}\n"
+        metadata += f"Автор: {document['author']}\n"
+        metadata += f"Получатель: {document.get('recipient', 'Нет')}\n"
+        metadata += f"Статус: {document['status']}\n"
+        metadata += f"Время создания: {document['created_at']}\n"
+        metadata += f"Дедлайн: {document['deadline']}\n"
 
-        if new_username and new_password:
-            self.username = new_username
-            self.password = new_password
-            self.save_user_data()  # Сохранение обновленных данных
-            messagebox.showinfo("Успех", "Профиль успешно обновлён!")
+        self.metadata_text.delete(1.0, tk.END)  # Очищаем предыдущее содержимое
+        self.metadata_text.insert(tk.END, metadata)
+
+    def view_document_content(self, event):
+        selected_title = self.document_listbox.get(self.document_listbox.curselection())
+        for doc in self.documents:
+            if doc["title"] == selected_title:
+                self.display_document_metadata(doc)
+                break
+
+    def search_item(self):
+        query = simpledialog.askstring("Поиск", "Введите ключевое слово для поиска:")
+        if not query:
+            messagebox.showwarning("Ошибка", "Введите ключевое слово для поиска.")
+            return
+
+        results = [doc for doc in self.documents if query.lower() in doc["title"].lower()]
+        if results:
+            result_titles = "\n".join([doc["title"] for doc in results])
+            messagebox.showinfo("Результаты поиска", f"Найденные документы:\n{result_titles}")
         else:
-            messagebox.showwarning("Ошибка", "Имя пользователя и пароль не могут быть пустыми.")
+            messagebox.showinfo("Результаты поиска", "Документы не найдены.")
 
-    # Функция для быстрого поиска
     def quick_search(self):
         query = self.search_entry.get()
-        if not query:
-            messagebox.showwarning("Ошибка", "Введите текст для поиска.")
-            return
-
-        found = False
-        for doc in self.documents:
-            if query.lower() in doc["title"].lower():
-                found = True
-                messagebox.showinfo("Найдено", f"Документ найден: {doc['title']}\nСодержимое:\n{doc['content']}")
-                break
-        if not found:
-            messagebox.showwarning("Не найдено", "Документ не найден.")
-
-    # Функция для создания документа, положения или инструкции
-    def create_item(self):
-        item_type = simpledialog.askstring("Создание",
-                                           "Какой тип создаваемого элемента? (документ/положение/инструкция)").lower()
-
-        if item_type in ["документ", "положение", "инструкция"]:
-            item_title = simpledialog.askstring("Создание", "Введите название:")
-            item_content = simpledialog.askstring("Создание", "Введите содержимое:")
-
-            if item_title and item_content:
-                if item_type == "документ":
-                    self.documents.append({"title": item_title, "content": item_content})
-                    self.incoming_documents.append(
-                        {"title": item_title, "content": item_content})  # Добавление в входящие
-                elif item_type == "положение":
-                    self.policies.append({"title": item_title, "content": item_content})
-                elif item_type == "инструкция":
-                    self.job_descriptions.append({"title": item_title, "content": item_content})
-                messagebox.showinfo("Успех", f"{item_type.capitalize()} '{item_title}' успешно создан!")
-            else:
-                messagebox.showwarning("Ошибка", "Название и содержимое не могут быть пустыми.")
+        if query:
+            self.search_item()
         else:
-            messagebox.showwarning("Ошибка", "Тип создания должен быть 'документ', 'положение' или 'инструкция'.")
+            messagebox.showwarning("Ошибка", "Введите ключевое слово для поиска.")
 
-    # Объединённая функция для просмотра
-    def view_item(self):
-        view_type = simpledialog.askstring("Просмотр",
-                                           "Что вы хотите просмотреть? (документ/положение/инструкция)").lower()
+    def show_notifications(self):
+        messagebox.showinfo("Уведомления", "Здесь будут ваши уведомления.")
 
-        if not view_type:
-            messagebox.showwarning("Ошибка", "Вы должны ввести тип просмотра.")
-            return
-
-        self.document_listbox.delete(0, tk.END)
-
-        if view_type == "документ":
-            for doc in self.documents:
-                self.document_listbox.insert(tk.END, doc["title"])
-        elif view_type == "положение":
-            for policy in self.policies:
-                self.document_listbox.insert(tk.END, policy["title"])
-        elif view_type == "инструкция":
-            for job_desc in self.job_descriptions:
-                self.document_listbox.insert(tk.END, job_desc["title"])
-        else:
-            messagebox.showwarning("Ошибка", "Тип просмотра должен быть 'документ', 'положение' или 'инструкция'.")
-
-    # Функция для объединённого поиска
-    def search_item(self):
-        search_type = simpledialog.askstring("Поиск", "Что вы хотите найти? (документ/положение/инструкция)").lower()
-        search_query = simpledialog.askstring("Поиск", "Введите название для поиска:")
-
-        if not search_type or not search_query:
-            messagebox.showwarning("Ошибка", "Вы должны ввести тип поиска и запрос.")
-            return
-
-        found = False
-        if search_type == "документ":
-            for doc in self.documents:
-                if search_query.lower() in doc["title"].lower():
-                    found = True
-                    messagebox.showinfo("Найдено", f"Документ найден: {doc['title']}\nСодержимое:\n{doc['content']}")
-                    break
-        elif search_type == "положение":
-            for policy in self.policies:
-                if search_query.lower() in policy["title"].lower():
-                    found = True
-                    messagebox.showinfo("Найдено",
-                                        f"Положение найдено: {policy['title']}\nСодержимое:\n{policy['content']}")
-                    break
-        elif search_type == "инструкция":
-            for job_desc in self.job_descriptions:
-                if search_query.lower() in job_desc["title"].lower():
-                    found = True
-                    messagebox.showinfo("Найдено",
-                                        f"Инструкция найдена: {job_desc['title']}\nСодержимое:\n{job_desc['content']}")
-                    break
-        else:
-            messagebox.showwarning("Ошибка", "Тип поиска должен быть 'документ', 'положение' или 'инструкция'.")
-
-        if not found:
-            messagebox.showwarning("Не найдено", f"{search_type.capitalize()} не найден(о).")
-
-    def view_document_content(self, event=None):
-        selected_index = self.document_listbox.curselection()
-        if selected_index:
-            selected_doc = self.documents + self.policies + self.job_descriptions
-            selected_item = selected_doc[selected_index[0]]
-            content_window = tk.Toplevel(self.root)
-            content_window.title(selected_item["title"])
-
-            content_label = tk.Label(content_window, text=selected_item["content"], padx=10, pady=10)
-            content_label.pack()
-
-            close_button = tk.Button(content_window, text="Закрыть", command=content_window.destroy)
-            close_button.pack(pady=5)
-        else:
-            messagebox.showwarning("Ошибка", "Выберите документ для просмотра.")
+    def user_menu(self):
+        messagebox.showinfo("Меню пользователя", "Здесь можно изменить настройки профиля.")
 
 
 if __name__ == "__main__":
